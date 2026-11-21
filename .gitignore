@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.next/
+build/
+.env*
+!.env.example
+*.pem
+*.log
+/be/ptoken.txt
+/be/token.txt
+/be/tid.txt
+/be/qid.txt

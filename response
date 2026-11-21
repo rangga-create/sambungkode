@@ -1,0 +1,287 @@
+1. Admin Menambah Soal Baru (POST /api/admin/questions)
+Request Payload (Dikirim oleh Admin)
+JSON
+{
+  "title": "Saring Sayuran Keranjang",
+  "language": "JavaScript",
+  "difficulty": "Easy",
+  "points": 10,
+  "analogy": "Ibu pergi ke pasar untuk menyaring sayuran segar tanpa mengambil buah.",
+  "code_template": "const isiKeranjang = [\"bayam\", \"mangga\", \"kangkung\"];\nconst sayurSaja = isiKeranjang._____((item) => item !== \"mangga\");",
+  "hint": "Method array bawaan untuk menyaring isi sesuai kondisi.",
+  "is_active": true,
+  "answers": [
+    {
+      "answer_text": "filter",
+      "is_case_sensitive": true
+    }
+  ]
+}
+Response Payload (Sukses Dibuat - 201 Created)
+Perhatikan bahwa response bisa mengembalikan detail soal dan daftar kunci jawaban yang tersimpan untuk panel admin (bukan untuk endpoint peserta).
+
+JSON
+{
+  "message": "Soal berhasil ditambahkan ke bank soal.",
+  "data": {
+    "id": 101,
+    "title": "Saring Sayuran Keranjang",
+    "language": "JavaScript",
+    "difficulty": "Easy",
+    "points": 10,
+    "analogy": "Ibu pergi ke pasar untuk menyaring sayuran segar tanpa mengambil buah.",
+    "code_template": "const isiKeranjang = [\"bayam\", \"mangga\", \"kangkung\"];\nconst sayurSaja = isiKeranjang._____((item) => item !== \"mangga\");",
+    "hint": "Method array bawaan untuk menyaring isi sesuai kondisi.",
+    "is_active": true,
+    "answers": [
+      {
+        "id": 501,
+        "answer_text": "filter",
+        "is_case_sensitive": true
+      }
+    ]
+  }
+}
+2. Peserta Mengambil Soal Aktif (GET /api/sessions/:code/questions)
+Sebagai pelengkap alur submit, ini contoh response ke peserta—kunci jawaban sengaja tidak ikut dikirim.
+
+JSON
+{
+  "session": {
+    "session_code": "SELA-01",
+    "name": "Babak Penyisihan SelaKode",
+    "status": "ACTIVE",
+    "remaining_seconds": 720
+  },
+  "questions": [
+    {
+      "id": 101,
+      "order": 1,
+      "title": "Saring Sayuran Keranjang",
+      "language": "JavaScript",
+      "difficulty": "Easy",
+      "points": 10,
+      "analogy": "Ibu pergi ke pasar untuk menyaring sayuran segar tanpa mengambil buah.",
+      "code_template": "const isiKeranjang = [\"bayam\", \"mangga\", \"kangkung\"];\nconst sayurSaja = isiKeranjang._____((item) => item !== \"mangga\");",
+      "hint": "Method array bawaan untuk menyaring isi sesuai kondisi."
+    }
+  ]
+}
+3. Peserta Mengirim Jawaban (POST /api/sessions/:code/submissions)
+Request Payload (Dikirim oleh Peserta)
+JSON
+{
+  "participant_id": 12,
+  "question_id": 101,
+  "submitted_answer": "filter",
+  "elapsed_seconds": 28
+}
+Response Payload — Jika Jawaban Benar (200 OK)
+JSON
+{
+  "message": "Jawaban tepat!",
+  "data": {
+    "submission_id": 8801,
+    "question_id": 101,
+    "is_correct": true,
+    "earned_points": 10,
+    "already_solved_before": false,
+    "session_score": {
+      "total_score": 30,
+      "solved_count": 3,
+      "total_time_seconds": 142
+    }
+  }
+}
+Response Payload — Jika Jawaban Salah (200 OK / 422 sesuai standar API kamu)
+JSON
+{
+  "message": "Jawaban belum tepat. Periksa kembali potongan kode atau petunjuk.",
+  "data": {
+    "submission_id": 8802,
+    "question_id": 101,
+    "is_correct": false,
+    "earned_points": 0,
+    "already_solved_before": false,
+    "session_score": {
+      "total_score": 20,
+      "solved_count": 2,
+      "total_time_seconds": 142
+    }
+  }
+}
+Catatan Validasi di Backend
+Normalisasi input: Lakukan trim() dan rapikan spasi berlebih sebelum membandingkan submitted_answer dengan answer_text (sambil tetap menghormati is_case_sensitive).
+
+Anti poin ganda: Cek dulu apakah participant_id sudah pernah punya submission dengan is_correct = TRUE untuk question_id di session_id yang sama—jika sudah, earned_points bernilai 0 agar skor tidak menggembung.
+
+
+Alur Logika Penilaian (POST /api/sessions/:code/submissions)
+1. Validasi Sesi & Soal
+Pastikan sesi lomba (contest_sessions) dengan session_code tersebut ada dan berstatus ACTIVE (serta belum melewati batas waktu sesi jika memakai waktu sesi).
+
+Pastikan question_id memang terdaftar di session_questions untuk session_id tersebut dan soalnya masih aktif (is_active = TRUE).
+
+2. Normalisasi Jawaban & Pencocokan Kunci
+Ambil seluruh kunci jawaban dari question_answers untuk question_id tersebut, lalu bandingkan dengan submitted_answer:
+
+Normalisasi dasar: Buang spasi di awal/akhir (trim()) dan rapikan spasi ganda di tengah menjadi satu spasi (\s+ -> " ").
+
+Cek is_case_sensitive:
+
+Jika is_case_sensitive = TRUE, bandingkan persis setelah dinormalisasi (normalizedSubmitted === normalizedAnswer).
+
+Jika is_case_sensitive = FALSE, samakan huruf besar/kecilnya (normalizedSubmitted.toLowerCase() === normalizedAnswer.toLowerCase()).
+
+Jika minimal satu kunci cocok, maka is_correct = TRUE; jika tidak ada yang cocok, maka is_correct = FALSE.
+
+3. Aturan Anti-Poin-Ganda & Perhitungan Poin
+Sebelum menambah skor, cek apakah peserta sudah pernah menyelesaikan soal ini sebelumnya di sesi yang sama:
+
+Query ke submissions: cari apakah ada baris dengan session_id, participant_id, question_id, dan is_correct = TRUE.
+
+Kasus A — Baru pertama kali benar (already_solved_before = FALSE):
+
+Tentukan poin soal: pakai custom_points dari session_questions jika ada, atau pakai points bawaan dari questions.
+
+earned_points = questionPoints.
+
+Update session_scores: total_score += earned_points, solved_count += 1, dan catat waktu tempuh (total_time_seconds).
+
+Kasus B — Sudah pernah benar sebelumnya (already_solved_before = TRUE):
+
+is_correct tetap TRUE, tapi earned_points = 0 agar poin tidak berlipat.
+
+session_scores tidak ditambah skor atau solved_count-nya lagi.
+
+Kasus C — Jawaban salah (is_correct = FALSE):
+
+earned_points = 0.
+
+Tetap simpan ke submissions sebagai riwayat percobaan.
+
+Pseudocode / Ilustrasi Logika di Service Layer
+Plaintext
+function evaluateSubmission(sessionId, participantId, questionId, rawAnswer, elapsedSeconds):
+  assertSessionActive(sessionId)
+  questionMeta = getSessionQuestion(sessionId, questionId)
+  answers = getQuestionAnswers(questionId)
+
+  normalizedInput = normalizeWhitespace(rawAnswer.trim())
+
+  isCorrect = false
+  for ans in answers:
+    target = normalizeWhitespace(ans.answer_text.trim())
+    if ans.is_case_sensitive:
+      if normalizedInput == target:
+        isCorrect = true
+        break
+    else:
+      if normalizedInput.toLowerCase() == target.toLowerCase():
+        isCorrect = true
+        break
+
+  alreadySolved = existsCorrectSubmission(sessionId, participantId, questionId)
+  basePoints = questionMeta.custom_points ?? questionMeta.points
+  earnedPoints = (isCorrect && !alreadySolved) ? basePoints : 0
+
+  submission = insertSubmission({
+    session_id: sessionId,
+    participant_id: participantId,
+    question_id: questionId,
+    submitted_answer: rawAnswer,
+    is_correct: isCorrect,
+    earned_points: earnedPoints
+  })
+
+  if isCorrect && !alreadySolved:
+    upsertSessionScore(sessionId, participantId, {
+      addScore: earnedPoints,
+      addSolved: 1,
+      addTime: elapsedSeconds
+    })
+
+  return { submission, isCorrect, earnedPoints, alreadySolved }
+Pertimbangan Tambahan Buat Lomba
+Pengurangan poin karena hint / salah berulang: Kalau suatu saat kamu mau bikin aturan penalti (misalnya salah berkali-kali atau buka hint mengurangi poin), hitung earnedPoints dari basePoints dikurangi penalti dengan batas minimum 0 agar poin tidak minus.
+
+Leaderboard tie-breaker: Saat mengurutkan peringkat di session_scores, urutkan total_score DESC, lalu total_time_seconds ASC (semakin cepat waktu penyelesaiannya, semakin unggul jika skornya sama).
+
+-- 1. Akun uji coba (1 Admin & 2 Peserta)
+INSERT INTO participants (display_name, email, role) VALUES
+('Panitia SelaKode', 'admin@selakode.id', 'ADMIN'),
+('Raka Pratama', 'raka@example.com', 'PARTICIPANT'),
+('Nadia Putri', 'nadia@example.com', 'PARTICIPANT');
+
+-- 2. Bank soal sambung kode (dengan konteks analogi sehari-hari)
+INSERT INTO questions (title, language, difficulty, points, analogy, code_template, hint, is_active) VALUES
+(
+  'Saring Sayuran Keranjang',
+  'JavaScript',
+  'Easy',
+  10,
+  'Ibu pergi ke pasar untuk menyaring sayuran segar tanpa mengambil buah mangga.',
+  'const keranjang = ["bayam", "mangga", "kangkung"];\nconst sayur = keranjang._____((item) => item !== "mangga");',
+  'Gunakan method array bawaan untuk menyaring isi berdasarkan kondisi.',
+  TRUE
+),
+(
+  'Cek Ekstensi Berkas CSV',
+  'Python',
+  'Easy',
+  10,
+  'Sebelum mengolah data, sistem mengecek apakah nama file diakhiri ekstensi .csv.',
+  'nama_file = "rekap_peserta.csv"\nif nama_file._____(".csv"):\n    baca_data(nama_file)',
+  'Method string di Python untuk mengecek akhiran teks.',
+  TRUE
+),
+(
+  'Tipe Status Pengiriman',
+  'TypeScript',
+  'Medium',
+  20,
+  'Status paket hanya diperbolehkan bernilai "PACKED" atau "SHIPPED".',
+  'type StatusPaket = "PACKED" | "SHIPPED";\ninterface Paket {\n  resi: string;\n  status: _____;\n}',
+  'Pakai tipe union yang sudah didefinisikan di atas.',
+  TRUE
+),
+(
+  'Bandingkan Nilai Target',
+  'C++',
+  'Medium',
+  20,
+  'Cek apakah penjumlahan dua elemen array bernilai sama persis dengan target.',
+  'if (angka[i] + angka[j] _____ target) {\n  return {i, j};\n}',
+  'Operator perbandingan kesamaan nilai.',
+  TRUE
+),
+(
+  'Menunggu Hasil Fetch',
+  'JavaScript',
+  'Hard',
+  30,
+  'Tunggu respons jaringan selesai sebelum mengubah isi respons menjadi JSON.',
+  'async function ambilSoal() {\n  try {\n    const res = _____ fetch("/api/questions");\n    return await res.json();\n  } catch (err) {\n    console.error(err);\n  }\n}',
+  'Keyword di dalam fungsi async untuk menunggu Promise selesai.',
+  TRUE
+);
+
+-- 3. Kunci jawaban valid per soal
+INSERT INTO question_answers (question_id, answer_text, is_case_sensitive) VALUES
+(1, 'filter', TRUE),
+(2, 'endswith', TRUE),
+(3, 'StatusPaket', TRUE),
+(4, '==', TRUE),
+(5, 'await', TRUE);
+
+-- 4. Sesi lomba aktif
+INSERT INTO contest_sessions (session_code, name, duration_seconds, status, started_at) VALUES
+('SELA-01', 'Sesi Uji Coba SelaKode', 900, 'ACTIVE', NOW());
+
+-- 5. Hubungkan soal ke sesi SELA-01
+INSERT INTO session_questions (session_id, question_id, sort_order, custom_points) VALUES
+(1, 1, 1, NULL),
+(1, 2, 2, NULL),
+(1, 3, 3, NULL),
+(1, 4, 4, NULL),
+(1, 5, 5, NULL);

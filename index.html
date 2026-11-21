@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SelaKode — Arena & Bank Soal</title>
+  <style>
+    :root {
+      --paper: #f5f3ed;
+      --card: #fffdf9;
+      --ink: #171717;
+      --muted: #57534e;
+      --line: #171717;
+      --accent: #d94e3a;
+      --accent-soft: #fde8e4;
+      --ok: #15803d;
+      --ok-bg: #dcfce7;
+      --bad: #b91c1c;
+      --bad-bg: #fee2e2;
+      --warn: #854d0e;
+      --warn-bg: #fef9c3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    .topbar {
+      border-bottom: 2px solid var(--line);
+      background: var(--card);
+      padding: 14px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .session-pill {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.76rem;
+      padding: 3px 8px;
+      border: 1.5px solid var(--line);
+      background: var(--accent-soft);
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+    }
+
+    .mode-btn {
+      border: none;
+      box-shadow: none;
+      background: transparent;
+      padding: 6px 12px;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+
+    .mode-btn.active {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .hud-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.88rem;
+    }
+
+    .hud-group input {
+      width: 110px;
+      padding: 4px 8px;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      font-size: 0.85rem;
+    }
+
+    .layout {
+      max-width: 1080px;
+      margin: 26px auto;
+      padding: 0 20px 56px;
+      display: grid;
+      grid-template-columns: 1.8fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 880px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sheet {
+      background: var(--card);
+      border: 2px solid var(--line);
+      box-shadow: 4px 4px 0 var(--line);
+      padding: 22px;
+    }
+
+    .sheet h2 {
+      margin: 0 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid var(--line);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.12rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1.5px dashed #a8a29e;
+    }
+
+    select,
+    input[type="text"],
+    textarea,
+    button {
+      font-family: inherit;
+      font-size: 0.88rem;
+      color: var(--ink);
+    }
+
+    select,
+    input[type="text"],
+    textarea {
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      padding: 8px 10px;
+    }
+
+    button {
+      border: 1.5px solid var(--line);
+      background: var(--card);
+      padding: 8px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--line);
+    }
+
+    button:active {
+      transform: translate(2px, 2px);
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .q-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .q-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      padding: 4px 9px;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      box-shadow: none;
+    }
+
+    .q-chip.current {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .q-chip.solved {
+      background: var(--ok-bg);
+      border-color: var(--ok);
+      color: var(--ok);
+    }
+
+    .q-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .q-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .q-meta {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .context-box {
+      background: var(--paper);
+      border-left: 4px solid var(--accent);
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.93rem;
+    }
+
+    .context-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    pre {
+      margin: 0 0 16px;
+      padding: 16px;
+      background: #1c1917;
+      color: #fafaf9;
+      border: 1.5px solid var(--line);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+      line-height: 1.65;
+      overflow-x: auto;
+    }
+
+    .blank-slot {
+      display: inline-block;
+      min-width: 82px;
+      padding: 0 7px;
+      border-bottom: 2px solid #fbbf24;
+      color: #fde68a;
+      font-weight: 700;
+    }
+
+    .submit-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .submit-row input[type="text"] {
+      flex: 1;
+      min-width: 210px;
+      background: #fff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .alert {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--line);
+      font-size: 0.88rem;
+      display: none;
+    }
+
+    .alert.show { display: block; }
+    .alert.ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+    .alert.bad { background: var(--bad-bg); color: var(--bad); border-color: var(--bad); }
+    .alert.warn { background: var(--warn-bg); color: var(--warn); border-color: #a16207; }
+
+    .side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .lb-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid #e7e5e4;
+      font-size: 0.88rem;
+    }
+
+    .lb-row:last-child { border-bottom: none; }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1080px;
+      margin: 26px auto;
+      padding: 0 20px 56px;
+      align-items: start;
+    }
+
+    @media (max-width: 880px) {
+      .admin-grid { grid-template-columns: 1fr; }
+    }
+
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .form-stack textarea {
+      min-height: 76px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+
+    .bank-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #e7e5e4;
+      font-size: 0.86rem;
+    }
+
+    .bank-item:last-child { border-bottom: none; }
+
+    .muted { color: var(--muted); font-size: 0.8rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-group">
+      <span class="brand-title">SelaKode</span>
+      <span class="session-pill">SESI: SELA-01</span>
+      <div class="mode-switch">
+        <button type="button" class="mode-btn active" id="tabPeserta">Mode Peserta</button>
+        <button type="button" class="mode-btn" id="tabAdmin">Panel Panitia</button>
+      </div>
+    </div>
+
+    <div class="hud-group">
+      <label>Peserta: <input id="inputNama" type="text" value="Raka" /></label>
+      <span>Skor: <strong id="tampilSkor">0</strong></span>
+      <span>Sisa Waktu: <strong id="tampilWaktu">15:00</strong></span>
+    </div>
+  </header>
+
+  <!-- MODE PESERTA -->
+  <main id="viewPeserta" class="layout">
+    <section class="sheet">
+      <div class="toolbar">
+        <select id="filterBahasa">
+          <option value="ALL">Semua bahasa</option>
+          <option value="JavaScript">JavaScript</option>
+          <option value="Python">Python</option>
+          <option value="TypeScript">TypeScript</option>
+          <option value="C++">C++</option>
+        </select>
+        <select id="filterLevel">
+          <option value="ALL">Semua level</option>
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+        <button type="button" id="btnPrev">← Prev</button>
+        <button type="button" id="btnNext">Next →</button>
+      </div>
+
+      <div id="stripSoal" class="q-strip"></div>
+
+      <div class="q-header">
+        <span class="q-title" id="judulSoal"></span>
+        <span class="q-meta" id="metaSoal"></span>
+      </div>
+
+      <div class="context-box">
+        <span class="context-label">Analogi Logika</span>
+        <span id="teksAnalogi"></span>
+      </div>
+
+      <pre id="blokKode"></pre>
+
+      <div class="submit-row">
+        <input id="inputJawaban" type="text" placeholder="Ketik potongan pengganti _____ ..." autocomplete="off" />
+        <button type="button" class="btn-primary" id="btnKirim">Kirim Jawaban</button>
+        <button type="button" id="btnHint">Petunjuk</button>
+      </div>
+
+      <div id="pesanRespon" class="alert"></div>
+    </section>
+
+    <aside class="side-col">
+      <section class="sheet">
+        <h2>Papan Skor Sementara</h2>
+        <div id="listLeaderboard"></div>
+      </section>
+
+      <section class="sheet">
+        <h2>Aturan Singkat</h2>
+        <div class="muted" style="line-height: 1.6;">
+          1. Lengkapi bagian bertanda <code>_____</code> sesuai konteks dan bahasa.<br />
+          2. Satu soal hanya memberi poin pada jawaban benar pertama.<br />
+          3. Urutan papan skor ditentukan oleh total poin, lalu waktu tercepat.
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- MODE ADMIN / PANITIA -->
+  <section id="viewAdmin" class="admin-grid hidden">
+    <div class="sheet">
+      <h2>Tambah Soal ke Bank Soal</h2>
+      <form id="formBankSoal" class="form-stack">
+        <input id="fJudul" type="text" placeholder="Judul soal (misal: Saring Sayur Segar)" required />
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <select id="fBahasa">
+            <option>JavaScript</option>
+            <option>Python</option>
+            <option>TypeScript</option>
+            <option>C++</option>
+          </select>
+          <select id="fLevel">
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+          </select>
+        </div>
+        <input id="fAnalogi" type="text" placeholder="Analogi: Ibu pergi ke pasar untuk _____..." required />
+        <textarea id="fKode" placeholder="Tulis potongan kode dengan _____ sebagai bagian kosong..." required></textarea>
+        <input id="fKunci" type="text" placeholder="Kunci jawaban valid (pisahkan koma jika lebih dari 1)" required />
+        <input id="fHint" type="text" placeholder="Petunjuk singkat (opsional)" />
+        <button type="submit" class="btn-primary">Simpan Soal</button>
+      </form>
+      <div id="pesanAdmin" class="alert"></div>
+    </div>
+
+    <div class="sheet">
+      <h2>Daftar Bank Soal Aktif</h2>
+      <div id="listBankSoal"></div>
+    </div>
+  </section>
+
+  <script>
+    const SEED_QUESTIONS = [
+      {
+        id: 1,
+        title: "Saring Sayuran Keranjang",
+        language: "JavaScript",
+        difficulty: "Easy",
+        points: 10,
+        analogy: "Ibu pergi ke pasar untuk menyaring sayuran segar tanpa mengambil buah mangga.",
+        code_template: `const keranjang = ["bayam", "mangga", "kangkung"];\nconst sayur = keranjang._____((item) => item !== "mangga");`,
+        answers: ["filter"],
+        hint: "Method array bawaan untuk menyaring isi sesuai kondisi."
+      },
+      {
+        id: 2,
+        title: "Cek Ekstensi Berkas CSV",
+        language: "Python",
+        difficulty: "Easy",
+        points: 10,
+        analogy: "Sebelum mengolah data, sistem mengecek apakah nama file diakhiri ekstensi .csv.",
+        code_template: `nama_file = "rekap_peserta.csv"\nif nama_file._____(".csv"):\n    baca_data(nama_file)`,
+        answers: ["endswith"],
+        hint: "Method string di Python untuk mengecek akhiran teks."
+      },
+      {
+        id: 3,
+        title: "Tipe Status Pengiriman",
+        language: "TypeScript",
+        difficulty: "Medium",
+        points: 20,
+        analogy: "Status paket hanya diperbolehkan bernilai 'PACKED' atau 'SHIPPED'.",
+        code_template: `type StatusPaket = "PACKED" | "SHIPPED";\ninterface Paket {\n  resi: string;\n  status: _____;\n}`,
+        answers: ["StatusPaket"],
+        hint: "Gunakan nama type alias yang sudah didefinisikan."
+      },
+      {
+        id: 4,
+        title: "Bandingkan Nilai Target",
+        language: "C++",
+        difficulty: "Medium",
+        points: 20,
+        analogy: "Cek apakah penjumlahan dua elemen array bernilai sama persis dengan target.",
+        code_template: `if (angka[i] + angka[j] _____ target) {\n  return {i, j};\n}`,
+        answers: ["=="],
+        hint: "Operator perbandingan kesamaan nilai."
+      },
+      {
+        id: 5,
+        title: "Menunggu Hasil Fetch",
+        language: "JavaScript",
+        difficulty: "Hard",
+        points: 30,
+        analogy: "Tunggu respons jaringan selesai sebelum mengubah isi respons menjadi JSON.",
+        code_template: `async function ambilSoal() {\n  try {\n    const res = _____ fetch("/api/questions");\n    return await res.json();\n  } catch (err) {\n    console.error(err);\n  }\n}`,
+        answers: ["await"],
+        hint: "Keyword di dalam fungsi async untuk menunggu Promise selesai."
+      }
+    ];
+
+    let bankSoal = JSON.parse(localStorage.getItem("selakode_v2_soal") || "null") || SEED_QUESTIONS;
+    let daftarTampil = [...bankSoal];
+    let idxAktif = 0;
+    let skorPeserta = 0;
+    let waktuTerpakai = 0;
+    let sisaDetik = 900;
+    let idTerjawab = new Set();
+
+    const $ = (id) => document.getElementById(id);
+
+    setInterval(() => {
+      waktuTerpakai += 1;
+      if (sisaDetik > 0) sisaDetik -= 1;
+      const m = String(Math.floor(sisaDetik / 60)).padStart(2, "0");
+      const d = String(sisaDetik % 60).padStart(2, "0");
+      $("tampilWaktu").textContent = `${m}:${d}`;
+    }, 1000);
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function normalisasi(str) {
+      return str.trim().replace(/\s+/g, " ");
+    }
+
+    function setAlert(elId, tipe, pesan) {
+      const box = $(elId);
+      box.className = `alert show ${tipe}`;
+      box.textContent = pesan;
+    }
+
+    function clearAlert(elId) {
+      const box = $(elId);
+      box.className = "alert";
+      box.textContent = "";
+    }
+
+    function renderChips() {
+      $("stripSoal").innerHTML = daftarTampil
+        .map((q, i) => {
+          const cls = ["q-chip"];
+          if (i === idxAktif) cls.push("current");
+          if (idTerjawab.has(q.id)) cls.push("solved");
+          return `<button type="button" class="${cls.join(" ")}" data-idx="${i}">#${i + 1}</button>`;
+        })
+        .join("");
+
+      document.querySelectorAll(".q-chip").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          idxAktif = Number(btn.dataset.idx);
+          renderArena();
+        });
+      });
+    }
+
+    function renderArena() {
+      renderChips();
+      const q = daftarTampil[idxAktif];
+      $("judulSoal").textContent = q.title;
+      $("metaSoal").textContent = `${q.language} • ${q.difficulty} • +${q.points} pts`;
+      $("teksAnalogi").textContent = q.analogy;
+
+      const kodeFormatted = escapeHtml(q.code_template).replace(
+        /_____/g,
+        `<span class="blank-slot">_____</span>`
+      );
+      $("blokKode").innerHTML = kodeFormatted;
+      $("inputJawaban").value = "";
+      $("inputJawaban").focus();
+      clearAlert("pesanRespon");
+    }
+
+    function filterSoal() {
+      const lang = $("filterBahasa").value;
+      const diff = $("filterLevel").value;
+      const cocok = bankSoal.filter(
+        (q) => (lang === "ALL" || q.language === lang) && (diff === "ALL" || q.difficulty === diff)
+      );
+      daftarTampil = cocok.length ? cocok : [...bankSoal];
+      idxAktif = 0;
+      renderArena();
+    }
+
+    function cekJawaban() {
+      const q = daftarTampil[idxAktif];
+      const tebakan = normalisasi($("inputJawaban").value);
+      if (!tebakan) {
+        setAlert("pesanRespon", "warn", "Isi dulu bagian _____ sebelum mengirim jawaban.");
+        return;
+      }
+
+      const benar = q.answers.some((ans) => normalisasi(ans) === tebakan);
+      if (!benar) {
+        setAlert("pesanRespon", "bad", "Belum tepat. Periksa kembali sintaks atau klik Petunjuk.");
+        return;
+      }
+
+      if (idTerjawab.has(q.id)) {
+        setAlert("pesanRespon", "warn", "Jawaban benar, tetapi soal ini sudah pernah bernilai sebelumnya (0 poin tambahan).");
+        return;
+      }
+
+      idTerjawab.add(q.id);
+      skorPeserta += q.points;
+      $("tampilSkor").textContent = skorPeserta;
+      simpanLeaderboard();
+      renderChips();
+      setAlert("pesanRespon", "ok", `Tepat! Jawaban "${tebakan}" diterima (+${q.points} poin).`);
+    }
+
+    function simpanLeaderboard() {
+      const nama = ($("inputNama").value || "Peserta").trim();
+      const papan = JSON.parse(localStorage.getItem("selakode_v2_lb") || "[]");
+      const ada = papan.find((item) => item.nama === nama);
+      if (ada) {
+        if (skorPeserta > ada.skor) {
+          ada.skor = skorPeserta;
+          ada.waktu = waktuTerpakai;
+        }
+      } else {
+        papan.push({ nama, skor: skorPeserta, waktu: waktuTerpakai });
+      }
+      papan.sort((a, b) => b.skor - a.skor || a.waktu - b.waktu);
+      localStorage.setItem("selakode_v2_lb", JSON.stringify(papan.slice(0, 8)));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const papan = JSON.parse(localStorage.getItem("selakode_v2_lb") || "[]");
+      if (!papan.length) {
+        $("listLeaderboard").innerHTML = `<div class="muted">Belum ada skor tercatat.</div>`;
+        return;
+      }
+      $("listLeaderboard").innerHTML = papan
+        .map(
+          (row, i) => `
+          <div class="lb-row">
+            <span>${i + 1}. <strong>${escapeHtml(row.nama)}</strong> <span class="muted">(${row.waktu}d)</span></span>
+            <strong>${row.skor} pts</strong>
+          </div>
+        `
+        )
+        .join("");
+    }
+
+    function renderBankAdmin() {
+      $("listBankSoal").innerHTML = bankSoal
+        .map(
+          (q) => `
+          <div class="bank-item">
+            <div><strong>#${q.id} — ${escapeHtml(q.title)}</strong></div>
+            <div class="muted">${q.language} • ${q.difficulty} • ${q.points} pts • Kunci: <code>${escapeHtml(q.answers.join(", "))}</code></div>
+          </div>
+        `
+        )
+        .join("");
+    }
+
+    $("tabPeserta").addEventListener("click", () => {
+      $("tabPeserta").classList.add("active");
+      $("tabAdmin").classList.remove("active");
+      $("viewPeserta").classList.remove("hidden");
+      $("viewAdmin").classList.add("hidden");
+      renderArena();
+    });
+
+    $("tabAdmin").addEventListener("click", () => {
+      $("tabAdmin").classList.add("active");
+      $("tabPeserta").classList.remove("active");
+      $("viewAdmin").classList.remove("hidden");
+      $("viewPeserta").classList.add("hidden");
+      renderBankAdmin();
+    });
+
+    $("btnKirim").addEventListener("click", cekJawaban);
+    $("inputJawaban").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") cekJawaban();
+    });
+    $("btnHint").addEventListener("click", () => {
+      const q = daftarTampil[idxAktif];
+      setAlert("pesanRespon", "warn", q.hint || "Perhatikan konteks logika dan tipe data pada baris kode.");
+    });
+    $("btnPrev").addEventListener("click", () => {
+      idxAktif = (idxAktif - 1 + daftarTampil.length) % daftarTampil.length;
+      renderArena();
+    });
+    $("btnNext").addEventListener("click", () => {
+      idxAktif = (idxAktif + 1) % daftarTampil.length;
+      renderArena();
+    });
+    $("filterBahasa").addEventListener("change", filterSoal);
+    $("filterLevel").addEventListener("change", filterSoal);
+
+    $("formBankSoal").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const kodeVal = $("fKode").value;
+      if (!kodeVal.includes("_____")) {
+        setAlert("pesanAdmin", "warn", "Kode harus mengandung tanda _____ sebagai bagian rumpang.");
+        return;
+      }
+      const level = $("fLevel").value;
+      const poin = level === "Easy" ? 10 : level === "Medium" ? 20 : 30;
+      const itemBaru = {
+        id: Date.now(),
+        title: $("fJudul").value.trim(),
+        language: $("fBahasa").value,
+        difficulty: level,
+        points: poin,
+        analogy: $("fAnalogi").value.trim(),
+        code_template: kodeVal,
+        answers: $("fKunci").value.split(",").map((s) => s.trim()).filter(Boolean),
+        hint: $("fHint").value.trim()
+      };
+      bankSoal.push(itemBaru);
+      localStorage.setItem("selakode_v2_soal", JSON.stringify(bankSoal));
+      e.target.reset();
+      filterSoal();
+      renderBankAdmin();
+      setAlert("pesanAdmin", "ok", "Soal baru berhasil masuk ke bank soal.");
+    });
+
+    renderLeaderboard();
+    renderArena();
+  </script>
+</body>
+</html>
