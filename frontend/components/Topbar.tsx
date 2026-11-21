@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -19,7 +20,13 @@ export function Topbar({ sessionCode, hud }: TopbarProps) {
   return (
     <header className="topbar">
       <div className="brand-group">
-        <span className="brand-title">SambungKode</span>
+        <Image
+          src="/sambungkode-logo.webp"
+          alt="SambungKode"
+          width={532}
+          height={83}
+          className="brand-logo"
+        />
         <span className="session-pill">SESI: {sessionCode ?? "—"}</span>
         <nav className="mode-switch">
           <Link href="/" className={`mode-btn${adminActive ? "" : " active"}`}>

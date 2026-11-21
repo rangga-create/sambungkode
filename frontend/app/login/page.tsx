@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -62,7 +63,13 @@ export default function LoginPage() {
     <>
       <header className="topbar">
         <div className="brand-group">
-          <span className="brand-title">SambungKode</span>
+          <Image
+            src="/sambungkode-logo.webp"
+            alt="SambungKode"
+            width={532}
+            height={83}
+            className="brand-logo"
+          />
           <span className="session-pill">MASUK ARENA</span>
         </div>
       </header>
